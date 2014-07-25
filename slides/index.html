@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Building Realtime Webapps with WebRTC and Python</title>
+
+		<meta name="description" content="Building WebRTC signalling systems with Python">
+		<meta name="author" content="Tarashish Mishra">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/simple.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+		<script>
+			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<h1>Building Realtime Webapps with WebRTC and Python</h1>
+					<p>
+						<small>by <a href="http://tarashish.com">Tarashish Mishra</a> / <a href="http://twitter.com/tarashish">@tarashish</a></small>
+					</p>
+				</section>
+<!-- 				<section>
+					<h1>Who am I?</h1>
+					<h3>I am <a href="http://twitter.com/tarashish">@tarashish</a></h3>
+					<br>
+					<p>
+						<ul>
+							<li>Undergrad Student</li>
+							<li>Amatuer Web Developer</li>
+							<li>Python Enthusiast</li>
+						</ul>
+					</p>
+				</section> -->
+                <section>
+                    <h2>What this talk is:</h2>
+                    <ul>
+                        <li>Overview of webrtc functions and apis.</li>
+                        <li>Overview of signalling mechanism.</li>
+                        <li>Example of implementation.</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>What it is not:</h2>
+                    <ul>
+                        <li>Deep drive into webrtc.</li>
+                        <li>In depth talk about signalling.</li>
+                    </ul>
+                </section>
+				<section>
+					<h1>So let's start with WebRTC 101</h1>
+				</section>
+				<section>
+					<h1>What is Webrtc?</h1>
+					<h3 class="fragment roll-in">
+					  "WebRTC is a free, open project that enables web browsers with Real-Time Communications (RTC) capabilities via simple JavaScript APIs without the
+					  use of external native plugins."
+					</h3>
+				</section>
+				<section>
+					<h2>WebRTC has 3 main functions.</h2>
+					<ul>
+						<li class="fragment">Access and acquire video and audio streams</li>
+						<li class="fragment">Establish a connection between peers and stream audio/video.</li>
+						<li class="fragment">Communicate arbitrary data.</li>
+					</ul>
+				</section>
+				<section>
+					<h2>And 3 Javascript APIs to perform these 3 functions.</h2>
+					<ul>
+						<li class="fragment">getUserMedia - Access and acquire video and audio streams</li>
+						<li class="fragment">RTCPeerConnection - Establish a connection between peers and stream audio/video.</li>
+						<li class="fragment">RTCDataChannel - Communicate arbitrary data.</li>
+					</ul>
+				</section>
+				<section>
+					<h1>getUserMedia</h1>
+					<h3>Acquiring audio and video</h3>
+				</section>
+				<section>
+					<hgroup>
+					  <h2>getUserMedia</h2>
+					</hgroup>
+					<article>
+					  <ul>
+					    <li>Represents a stream of audio and/or video</li>
+					    <li>Can contain multiple 'tracks'</li>
+					    <li>Obtain a MediaStream with <code>navigator.getUserMedia()</code></li>
+					  </ul>
+					  <img src="img/mediaStream.png" alt="MediaStream diagram" style="width: 550px" />
+					</article>
+				</section>
+				<section>
+					<h3>Looks something like this</h3>
+					<pre>
+						<code class="javascript">
+							var constraints = {video: true};
+
+							function successCallback(stream) {
+								// Do things with the stream
+							}
+
+							function errorCallback(error) {
+								// uh oh, error.
+							}
+
+							navigator.getUserMedia(constraints, successCallback, errorCallback);
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>RTCPeerConnection</h2>
+					<h4>Audio and video communication between peers</h4>
+				</section>
+				<section>
+					<hgroup>
+					  <h2>RTCPeerConnection does a lot</h2>
+					</hgroup>
+					  <article>
+					<ul>
+					  <li>Signal processing</li>
+					  <li>Codec handling</li>
+					  <li>Peer to peer communication</li>
+					  <li>Security</li>
+					  <li>Bandwidth management</li>
+					</ul>
+					  <p>...</p>
+					  </article>
+				</section>
+				<section>
+					<h2>RTCPeerConnection sample</h2>
+					<pre>
+						<code class="javascript">
+							pc = new RTCPeerConnection();
+							pc.onaddstream = gotRemoteStream;
+							pc.addStream(localStream);
+							pc.createOffer(gotOffer);
+
+							function gotOffer(desc) {
+							  pc.setLocalDescription(desc);
+							  sendOffer(desc);
+							}
+
+							function gotAnswer(desc) {
+							  pc.setRemoteDescription(desc);
+							}
+
+							function gotRemoteStream(e) {
+							  attachMediaStream(remoteVideo, e.stream);
+							}
+						</code>
+					</pre>
+				</section>
+				<section>
+					<hgroup>
+					  <h2>RTCDataChannel</h2>
+					  <h4>Bidirectional communication of arbitrary data between peers</h4>
+					</hgroup>
+					<article>
+					  <ul>
+					    <li>Same API as WebSockets</li>
+					    <li>Ultra-low latency</li>
+					    <li>Unreliable or reliable</li>
+					    <li>Secure</li>
+					  </ul>
+					</article>
+				</section>
+				<section>
+					<h1>So in short ...</h1>
+				</section>
+				<section>
+					<h2>Before WebRTC ..</h2>
+					<img src="img/w1.png">
+				</section>
+				<section>
+					<h1>Now ..</h1>
+					<img src="img/w2.png">
+				</section>
+				<section>
+					<h1>But, how do peers find each other?</h1>
+					<h2 class="fragment pink">It's upto us.</h2>
+				</section>
+				<section>
+					<h1>Signalling!!!</h1>
+					<h2 class="fragment pink">WebRTC is peer to peer, but we need servers.</h2>
+				</section>
+				<section>
+					<h1>Example</h1>
+					<ul>
+						<li>Each user lets the server know that they are online.</li>
+						<li>Server introduces the user to available peers.</li>
+						<li>And now they can communicate via webRTC.</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Before the actual call begins, clients need to exchange:</h2>
+					<ul>
+						<li>Session control messages</li>
+						<li>Media metadata (codecs, bandwidth and stuff)</li>
+						<li>Network data (IP address and port as seen by the world)</li>
+					</ul>
+					<h2 class="fragment">They use signalling mechanism for that.</h2>
+				</section>
+				<section>
+					<h2>It looks something like this.</h2>
+					<img src="img/jsep.png">
+				</section>
+				<section>
+					<h1>Now, let's talk about implementation.</h1>
+				</section>
+				<section>
+					<ul>
+						<li>Signalling system is just another messaging service.</li>
+						<li>Clients need to pass messages back and forth between them.</li>
+						<li>So any messaging service with bidirectional flow will do.</li>
+					</ul>
+				</section>
+				<section>
+					<h2>So what are the choices?</h2>
+					<ul>
+						<li>Websocket (All browsers that support webRTC support websocket too.)</li>
+						<li>XMPP Jingle</li>
+						<li>Commercial messaging platforms eg Pusher, PubNub</li>
+						<li>Google AppEngine's messaging protocol</li>
+						<li>Data Channel</li>
+					</ul>
+				</section>
+				<section>
+					<img src="img/w3.png">
+				</section>
+				<section>
+					<h1>I can haz teh code?</h1>
+					<img src="img/cat.jpg">
+				</section>
+				<section>
+					<h2>Sample code for a tornado signalling server</h2>
+					<p>(Incomplete. See github link for runnable stuff.)</p>
+					<pre>
+						<code class="python">
+							global_rooms = {}
+							class Room(object):
+							    def __init__(self, name, clients=[]):
+							        self.name = name
+							        self.clients = clients
+							    def __repr__(self):
+							        return self.name
+
+							class MainHandler(RequestHandler):
+							    def get(self):
+							        room = str(uuid.uuid4().get_hex().upper()[0:6])
+							        self. redirect('/room/'+room)
+
+							class RoomHandler(RequestHandler):
+							    def get(self, slug):
+							        self.render('room.html')
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>Sample code for a tornado signalling server</h2>
+					<p>(Incomplete. See github link for runnable stuff.)</p>
+					<pre>
+						<code class="python">
+							class EchoWebSocket(WebSocketHandler):
+							    def open(self, slug):
+							        if slug in global_rooms:
+							            global_rooms[slug].clients.append(self)
+							        else:
+							            global_rooms[slug] = Room(slug, [self])
+							        self.room = global_rooms[slug]
+							        if len(self.room.clients) > 2:
+							            self.write_message('fullhouse')
+							        elif len(self.room.clients) == 1:
+							            self.write_message('initiator')
+							        else:
+							            self.write_message('not initiator')
+							        logging.info('WebSocket connection opened from %s', self.request.remote_ip)
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>Sample code for a tornado signalling server</h2>
+					<p>(Incomplete. See github link for runnable stuff.)</p>
+					<pre>
+						<code class="python">
+							class EchoWebSocket(WebSocketHandler):
+							...
+							...
+								def on_message(self, message):
+								    logging.info('Received message from %s: %s', self.request.remote_ip, message)
+								    for client in self.room.clients:
+								        if client is self:
+								            continue
+								        client.write_message(message)
+
+								def on_close(self):
+								    logging.info('WebSocket connection closed')
+								    self.room.clients.remove(self)
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>Sample code for a tornado signalling server</h2>
+					<p>(Incomplete. See github link for runnable stuff.)</p>
+					<pre>
+						<code class="python">
+							application = Application([
+							    (r'/', MainHandler),
+							    (r"/room/([^/]*)", RoomHandler),
+							    (r'/ws/([^/]*)', EchoWebSocket),
+							], **settings)
+
+							application.listen(address, port)
+							IOLoop.instance().start()
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>The client-side code</h2>
+					<p>(Incomplete. See github link for runnable stuff.)</p>
+					<pre>
+						<code class="javascript">
+							var ws = new WebSocket("ourWebsocketListenerEndpointAddress");
+
+							function init() {
+							    var constraints = {
+							        audio: true,
+							        video: true
+							    };
+							    getUserMedia(constraints, connect, fail);
+							}
+
+
+							function connect(stream) {
+							    pc = new RTCPeerConnection(null);
+
+							    if (stream) {
+							        pc.addStream(stream);
+							        $('#local').attachStream(stream);
+							    }
+
+							    pc.onaddstream = function(event) {
+							        $('#remote').attachStream(event.stream);
+							        logStreaming(true);
+							    };
+							    pc.onicecandidate = function(event) {
+							        if (event.candidate) {
+							            ws.send(JSON.stringify(event.candidate));
+							        }
+							    };
+							    ws.onmessage = function (event) {
+							        var signal = JSON.parse(event.data);
+							        if (signal.sdp) {
+							            if (initiator) {
+							                receiveAnswer(signal);
+							            } else {
+							                receiveOffer(signal);
+							            }
+							        } else if (signal.candidate) {
+							            pc.addIceCandidate(new RTCIceCandidate(signal));
+							        }
+							    };
+
+							    if (initiator) {
+							        createOffer();
+							    } else {
+							        log('waiting for offer...');
+							    }
+							    logStreaming(false);
+							}
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h2>Wow! That looks easy!</h2>
+				</section>
+				<section>
+					<img style="height: 600px" src="img/no.jpg">
+				</section>
+				<section>
+					<h1>The CODE</h1>
+					<h2><a href="">github</a></h2>
+				</section>
+				<section>
+					<h1>Thanks!!!♥!</h1>
+					<p><a href="https://github.com/sunu">sunu</a> on Github and IRC</p>
+					<p><a href="https://twitter.com/tarashish">@tarashish</a> on Twitter</p>
+				</section>
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				slideNumber: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+		</script>
+	</body>
+</html>
